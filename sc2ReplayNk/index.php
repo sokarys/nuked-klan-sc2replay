@@ -122,7 +122,7 @@ $(function() {
 					<input type="hidden" name="MAX_FILE_SIZE" value="<?php echo $MAX_FILE_SIZE;?>" />
 					<table>
 					<tr>
-					<td><label for="userfile">Choisir un replay � upload : </label></td><td><input name="userfile" type="file" /></td>
+					<td><label for="userfile">Choisir un replay à upload : </label></td><td><input name="userfile" type="file" /></td>
 					</tr><tr>
 					<td><label for="commentaire">Commentaire : </label></td><td><textarea  name="commentaire" rows="4" cols="30"></textarea></td>
 					</tr>
@@ -278,6 +278,11 @@ if (isset($_FILES['userfile'])) {
 			if (isset($_POST['test']) && $_POST['test'] == 1) {
 				if (class_exists("SC2Replay") || (include 'sc2replay.php')) {
 					
+					//$bool = $a->insertChatLogMessage("testing testing", "testguy", 1);
+					//$bool = $a->insertChatLogMessage("testing 2", 1, 5);
+					
+					//$a->saveAs("modules/sc2Replay/replay/".$name, true);
+					//$a = new MPQFile("testfile.SC2Replay", true, 2);
 					$byte = 0;
 					$b = new SC2Replay($a);		
 					$b->setDebug(true);
@@ -291,12 +296,17 @@ if (isset($_FILES['userfile'])) {
 			if ($init == false)
 				echo "Error parsing uploaded file, make sure it is a valid MPQ archive!<br />\n";
 			else if ($a->getFileType() == "SC2replay") {
-
+				// echo sprintf("Version: %s<br />\n",$a->getVersionString());
 				$b = $a->parseReplay();
 				$parseDurationString .= sprintf("Parsed replay in %d ms.<br />\n",((microtime_float() - $start)*1000));
 				$players = $b->getPlayers();
 				$recorder = $b->getRecorder();
-
+				// echo sprintf("Map name: %s, Game length: %s<br />\n",$b->getMapName(),$b->getFormattedGameLength());
+				// echo sprintf("Team size: %s, Game speed: %s<br />\n",$b->getTeamSize(), $b->getGameSpeedText());
+				// echo sprintf("Real team size: %s<br />\n",$b->getRealTeamSize());
+				// echo sprintf("Realm: %s<br />\n",$b->getRealm());
+				// echo sprintf("Date and time played: %s<br />\n",date('jS \of F Y \a\t H:i' ,$b->getCtime()));
+				
 				$realrecorder = "";
 				if ($recorder != null)
 					$realrecorder =  $recorder['name'];
@@ -306,14 +316,19 @@ if (isset($_FILES['userfile'])) {
 					$commenaires = $_POST['commentaire'];
 				}
 				$time = time();
-				$sql = mysql_query("INSERT INTO _replay SET version='".$a->getVersionString()."', dateupload='".$time."', commentaire='".mysql_real_escape_string($commenaires)."', recordby='".$realrecorder."', mapname='".utf8_decode(mysql_real_escape_string($b->getMapName()))."',gamelength='".$b->getFormattedGameLength()."', date='".date('d/m/Y \a\t H:i' ,$b->getCtime())."', gamespeed='".$b->getGameSpeedText()."', replayname='".$name."', teamsize='".$b->getRealTeamSize()."'");
-
+				$sql = mysql_query("INSERT INTO _replay SET version='".$a->getVersionString()."', dateupload='".$time."', commentaire='".mysql_real_escape_string($commenaires)."', recordby='".utf8_decode(mysql_real_escape_string($realrecorder))."', mapname='".utf8_decode(mysql_real_escape_string($b->getMapName()))."',gamelength='".$b->getFormattedGameLength()."', date='".date('d/m/Y \a\t H:i' ,$b->getCtime())."', gamespeed='".$b->getGameSpeedText()."', replayname='".$name."', teamsize='".$b->getRealTeamSize()."'");
+				// echo "<br /><br /><br /><br />RESPONNNNNNNNNNNNNNSE<br />";
 				$response =mysql_insert_id();
-
+				// echo $response;
+				// echo "<br />END RESPONNNNNNNNNNNNNNSE<br /><br /><br /><br />";
 				if($response>0){
+					if ($recorder != null){
+						// echo sprintf("Replay recorded by: %s (EXPERIMENTAL!)<br />\n",$recorder['name']);
+					}
 					$apmString = "<b>APM graphs</b><br />\n";
 					$obsString = "";
 					$obsCount = 0;
+					// echo "<table border=\"1\"><tr><th>Player name</th><th>Race</th><th>Color</th><th>Team</th><th>Average APM<br />(experimental)</th><th>Winner?</th></tr>\n";
 					foreach($players as $value) {
 						if ($value['isObs']) {
 							if ($obsString == "")
@@ -331,6 +346,16 @@ if (isset($_FILES['userfile'])) {
 							$difficultyString = sprintf(" (%s)",SC2Replay::$difficultyLevels[$value['difficulty']]);
 						else
 							$difficultyString = "";
+						// echo sprintf("<tr><td>%s</td><td>%s</td><td><font color=\"#%s\">%s</font></td><td>%s</td><td style=\"text-align: center\">%d</td><td style=\"background-color: #%06X; text-align: center\">%d</td></tr>\n",
+										// $value['name'].$difficultyString,
+										// $value['race'],
+										// $value['color'],
+										// $value['sColor'],
+										// ($value['team'] > 0)?"Team ".$value['team']:"-",
+										// ($value['team'] > 0)?(round($value['apmtotal'] / ($b->getGameLength() / 60))):0,
+										// ((isset($value['won']))?$wincolor:0xFFFFFF),
+										// (isset($value['won']))?$value['won']:(($value['team'] > 0)?"Unknown":"-")
+									// );
 						if (!$value['isObs'] && $value['ptype'] != 'Comp') {
 							$apmFileName = $value['id']."_".md5($name).".png";
 							createAPMImage($value['apm'],$b->getGameLength(),"modules/sc2Replay/apm/".$apmFileName);
@@ -340,7 +365,8 @@ if (isset($_FILES['userfile'])) {
 							$apm = ($value['team'] > 0)?(round($value['apmtotal'] / ($b->getGameLength() / 60))):0;
 							$winner = (isset($value['won']))?$value['won']:(($value['team'] > 0)?"Unknown":"-");
 							
-							$sql = mysql_query("INSERT INTO _replayPlayer SET idreplay='".$response."', nomplayer='".$value['name']."', team='".$value['team']."', apm='".$apm."', race='".$value['race']."', color='".$value['color']."', winner='".$winner."', apmpicture='".$apmFileName."'");
+							$sql = mysql_query("INSERT INTO _replayPlayer SET idreplay='".$response."', nomplayer='".utf8_decode(mysql_real_escape_string($value['name']))."', team='".$value['team']."', apm='".$apm."', race='".$value['race']."', color='".$value['color']."', winner='".$winner."', apmpicture='".$apmFileName."'");
+							// echo "<br />Myslq".$value['name']."<br />";
 						}
 					}
 					if ($name != '') { 
@@ -353,10 +379,138 @@ if (isset($_FILES['userfile'])) {
 						} 
 					}   
 				}
-?>	
-<?php
+				// echo "</table><br />";
+				// if ($obsCount > 0) {
+					// echo "Observers ($obsCount): $obsString<br />\n";
+				// }
+				// $messages = $b->getMessages();
+				// if (count($messages) > 0) {
+					// echo "<b>Messages:</b><br /><table border=\"1\"><tr><th>Time</th><th>Player</th><th>Target</th><th>Message</th></tr>\n";
+					// foreach ($messages as $val){
+						// echo sprintf("<tr><td>%d sec</td><td>%s</td><td>%s</td><td>%s</td></tr>\n",$val['time'],
+									  // $val['name'], ($val['target'] == 2)?"Alliance":"All",$val['message']);
+					// }
+					// echo "</table><br />\n";
+				// }
+				// echo $apmString;
 
+				// $temp = $b->getUnits();
+				// if (count($temp) > 0) {
+					// echo "<table border=\"1\"><tr><th>Unit type</th><th>Unique unit IDs</th></tr>\n";
+					// foreach ($temp['units'] as $uType => $uId) {	
+						// echo sprintf("<tr><td>0x%06X</td><td>%d</td></tr>\n",$uType,count($uId));
+					// }
+					// echo "</table>";
+				// }
+				
+				// $t = $b->getEvents();
+				// if (class_exists('SC2ReplayUtils')) {
+				?>
+				
+				<!--<div>
+				<span><b>Click on the following links to show/hide events</b></span><br />
+				<span><a href="#" onClick="return toggleVisible('allevents');">All events</a></span>
+				<span><a href="#" onClick="return toggleVisible('buildingevents');">Building events</a></span>
+				<span><a href="#" onClick="return toggleVisible('unitevents');">Unit events</a></span>
+				<span><a href="#" onClick="return toggleVisible('upgradeevents');">Upgrade events</a></span>
+				</div>
+				<div>-->		
+				<?php
+					//create table of all events
+					// echo "<div id=\"allevents\" style=\"display: block\" class=\"events\"><h2>All events:</h2><table class=\"events\"><tr><th>Timecode</th>\n";
+					// $pNum = count($players);
+					// foreach ($players as $value) {
+					  // if (!$value['isObs'] && $value['ptype'] != 'Comp'){
+						// echo sprintf("<th>%s (%s)</th>",$value['name'],$value['race']);
+						// }
+					// }
+					// echo "</tr>\n";
+					// if (count($t) > 0)
+						// foreach ($t as $value) {
+							// $eventarray = $b->getAbilityArray($value['a']);
+							// setting rally points or issuing move/attack move or other commands does not tell anything
+							// if ($eventarray['type'] == SC2_TYPEGEN && !isset($_POST['debug'])) continue;
+							// echo sprintf("<tr><td>%d sec</td>",$value['t'] / 16);
+							// foreach ($players as $value2) {
+								// if ($value2['isObs'] || $value2['ptype'] == 'Comp') continue;
+								// if ($value['p'] == $value2['id']){
+									// echo sprintf("<td>%s%s</td>",$eventarray['desc'],(isset($_POST['debug']))?sprintf(" (%06X)",$value['a']):"");
+									// }
+								// else{
+									// echo "<td>&nbsp;</td>";
+									// }
+							// }
+							// echo "</tr>\n";
+						// }
+					// echo "</table></div>";
+					// $buildingDiv = "<div id=\"buildingevents\" style=\"display: none\" class=\"events\"><h2>Buildings:</h2>";
+					// $unitDiv = "<div id=\"unitevents\" style=\"display: none\" class=\"events\"><h2>Units:</h2>";
+					// $upgradeDiv = "<div id=\"upgradeevents\" style=\"display: none\" class=\"events\"><h2>Upgrades:</h2>";
+					
+					// create ability breakdown tables
+					// foreach ($players as $value) {
+						// $buildingTable = "";
+						// if ($value['isComp'] || $value['isObs']) continue;
+						// $buildingTable = sprintf("<table class=\"events\"><tr><th><font color=\"#%s\">%s</font></th><th>First seen</th><th>Total</th></tr>\n",
+									  // $value['color'],
+									  // $value['name']);
+						// $unitTable = sprintf("<table class=\"events\"><tr><th><font color=\"#%s\">%s</font></th><th>First seen</th><th>Total</th></tr>\n",
+									  // $value['color'],
+									  // $value['name']);
+						// $upgradeTable = sprintf("<table class=\"events\"><tr><th><font color=\"#%s\">%s</font></th><th>First seen</th><th>Total</th></tr>\n",
+									  // $value['color'],
+									  // $value['name']);
+						// foreach ($value['firstevents'] as $eventid => $time) {
+							// $eventarray = $b->getAbilityArray($eventid);
+							// $str = sprintf("<tr><td>%s</td><td>%s</td><td>%d</td></tr>\n",
+										// $eventarray['name'],
+										// $b->getFormattedSecs($time),
+										// $value['numevents'][$eventid]);
+							// switch ($eventarray['type']) {
+								// case SC2_TYPEBUILDING:
+								// case SC2_TYPEBUILDINGUPGRADE:
+									// $buildingTable .= $str;
+									// break;
+								// case SC2_TYPEUNIT:
+								// case SC2_TYPEWORKER:
+									// $unitTable .= $str;
+									// break;
+								// case SC2_TYPEUPGRADE:
+									// $upgradeTable .= $str;
+									// break;
+								// default:
+							// }
+						// }
+						// $buildingTable .= "</table>";
+						// $unitTable .= "</table>";
+						// $upgradeTable .= "</table>";
+						// $buildingDiv .= $buildingTable;
+						// $unitDiv .= $unitTable;
+						// $upgradeDiv .= $upgradeTable;
+					// }
+					// echo $buildingDiv . "</div>";
+					// echo $unitDiv . "</div>";
+					// echo $upgradeDiv . "</div>";
+					// echo "</div>";
+				// }
 			}
+			// else if ($a->getFileSize("DocumentHeader") > 0 && $a->getFileSize("Minimap.tga") > 0) { // possibly SC2 map file
+				// if (class_exists("SC2Map") || (include 'sc2map.php')) {
+					// $sc2map = new SC2Map();
+					// $sc2map->parseMap($a);
+					// echo "<table>";
+					// echo sprintf("<tr><td>Map name:</td><td>%s</td></tr>\n",$sc2map->getMapName());
+					// echo sprintf("<tr><td>Author:</td><td>%s</td></tr>\n",$sc2map->getAuthor());
+					// echo sprintf("<tr><td>Short description:</td><td>%s</td></tr>\n",preg_replace('/<[^>]+>/','',$sc2map->getShortDescription()));
+					// echo sprintf("<tr><td>Long description:</td><td>%s</td></tr>\n",preg_replace('/<[^>]+>/','',$sc2map->getLongDescription()));
+					// $minimapfilename = md5($sc2map->getMapName()).".png";
+					// imagepng($sc2map->getMiniMapData(),$minimapfilename);
+					// echo sprintf("</table>Minimap:<br /><img src=\"$minimapfilename\" /><br />\n");
+				// }
+			// }
+			// echo sprintf("<p>Peak memory usage: %d bytes<br /></p>\n",memory_get_peak_usage(true));
+			// $parseDurationString .= sprintf("Page generated in %d ms.<br />\n",((microtime_float() - $start)*1000));
+			// echo "<p>$parseDurationString</p>";
 		}
 	}
 }
@@ -508,7 +662,7 @@ function drawReplay(){
 			} 
 			echo "Version : ".$value['version']."<br/>";
 			echo "Type : ".$value['teamsize']."<br/>";
-			echo "Dur�e : ".$value['gamelength']."<br/>";
+			echo "Durée : ".$value['gamelength']."<br/>";
 			echo "Vitesse : ".$value['gamespeed']."<br/>";
 			echo "Commentaire : ".$value['commentaire']."<br/><br/>";
 			foreach($reponse2 as $value2){
