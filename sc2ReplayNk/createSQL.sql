@@ -29,3 +29,11 @@ CREATE TABLE IF NOT EXISTS `_replayPlayer` (
   FOREIGN KEY `idreplay` REFERENCES _replay(`id`) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS `_replayComment` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `idreplay` int(11) NOT NULL,
+  `username` varchar(64) NOT NULL,
+  `comment` text NOT NULL,
+  `time` varchar(64) NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`)
+);

@@ -75,8 +75,9 @@ function toggleVisible(id) {
 }
 
 $(function() {
-
+		$(".buttons2").button();
 		$(".buttons").button();
+		
 		$( "#replayList" ).accordion({
 			active: true,
 			collapsible: true,
@@ -84,7 +85,16 @@ $(function() {
 			autoHeight: false,
 			navigation: true
 		});
-		$( ".apmImg" ).accordion({
+		
+		$( ".apmImg" ).button().click(function(){
+			$('#' + $(this).attr('idimgscr')).show().dialog({
+														height: 300,
+														width: 400,
+														modal: true
+													});
+		});
+		
+		$( ".commentaires" ).accordion({
 			active: true,
 			collapsible: true,
 			alwaysOpen: false,
@@ -107,6 +117,8 @@ $(function() {
 			autoHeight: false,
 			navigation: true
 		});
+		
+		$(".hide").hide();
 	});
 //-->
 </script>
@@ -210,7 +222,12 @@ function createAPMImage($vals, $length, $fn) {
 	imagedestroy($frame);
 	imagedestroy($pic);
 }
-
+if(isset($_POST['idreplayCom']) && $_POST['addcomment'] != ""){
+	$time = time();
+	$sql1 = mysql_query("INSERT INTO _replayComment SET comment='".$_POST['addcomment']."', username='".$_POST['userCom']."', idreplay='".$_POST['idreplayCom']."', time='".$time."'");
+	echo "Commentaire rajouté<br/>";
+}
+			
 if(isset($_POST['deletereplayid'])){
 	$idreplay = $_POST['deletereplayid'];
 	global $user;
@@ -221,9 +238,13 @@ if(isset($_POST['deletereplayid'])){
 		removeReplay($idreplay);
 		$sql = mysql_query("DELETE FROM _replay WHERE id='".$idreplay."'");
 	}
-	
 	echo "Replay removed<br/>";
 }
+
+if(isset($_POST['delcomment'])){
+	deleteComment($_POST['delcomment']);
+}
+
 
 if (isset($_FILES['userfile'])) {
 	$error = $_FILES['userfile']['error'];
@@ -541,11 +562,17 @@ function removeReplay($id){
 				unlink("modules/sc2Replay/apm/".$value['apmpicture']);
 			}
 		}
+		$sql3 = mysql_query("DELETE FROM _replayComment WHERE idreplay='".$id."'");
 		$sql = mysql_query("DELETE FROM _replayPlayer WHERE idreplay='".$id."'");
 		if($reponse[6]){
 			unlink("modules/sc2Replay/replay/".$reponse[6]);
 		}
 	}
+}
+
+function deleteComment($id){
+	$sql3 = mysql_query("DELETE FROM _replayComment WHERE id='".$id."'");
+	echo "Commentaire supprimé<br/>";
 }
 
 function getRace($id){
@@ -645,7 +672,9 @@ function drawReplay(){
 	foreach($reponse as $value){
 		if($value['id'] != ''){
 			$getRaceTeam = getRace($value['id']);
-			echo "<h3><a href=\"#\">".$value['teamsize']." - ".$getRaceTeam." - ".($value['mapname'])." - ".$value['recordby']." (".$value['date'].")</a></h3>";
+			$sql4 = mysql_query("SELECT count(*) FROM _replayComment WHERE idreplay='".$value['id']."' ORDER BY time DESC");
+			$repons4 =  mysql_fetch_row($sql4);
+			echo "<h3><a href=\"#\">".$value['teamsize']." - ".$getRaceTeam." - ".($value['mapname'])." - ".$value['recordby']." - ".$value['date']." - ".$repons4[0]." commentaires</a></h3>";
 			echo "<div>";
 			$sql2 = mysql_query("SELECT * FROM _replayPlayer WHERE idreplay='".$value['id']."'");
 			$reponse2 = mysql_fetch_all($sql2);
@@ -676,20 +705,75 @@ function drawReplay(){
 					echo "</td></tr></table><br/>";
 					echo "Team : ".$value2['team']."<br/>";
 					echo "Race : ".getRaceIcon($value2['race'])." ".$value2['race']."<br/>";
-					echo "<div class=\"apmImg\">";
-					echo "<h3><a href=\"#\">"."Apm : ".$value2['apm']."</a></h3>";
-					echo "<div>";
-					echo "<img src=\"modules/sc2Replay/apm/".$value2['apmpicture']."\"/>";
+					echo "Apm moyen: ".$value2['apm']."&nbsp;&nbsp;&nbsp;&nbsp;";
+					echo "<span class=\"apmImg\" idimgscr=\"".$value2['nomplayer'].substr($value['replayname'],0,strlen($value['replayname'])-10)."\" >";
+					echo "Voir le graphique";
+					echo "</span><br/>";
+					
+					echo "<div class=\"hide\" title=\"Apm de ".$value2['nomplayer']." - Moyenne : ".$value2['apm']."\" id=\"".$value2['nomplayer'].substr($value['replayname'],0,strlen($value['replayname'])-10)."\">";
+					echo "<center><img src=\"modules/sc2Replay/apm/".$value2['apmpicture']."\"/></center>";
 					echo "</div>";
-					echo "</div>";
+					echo "<br/>";
 					echo "<br/>";
 				}
 			}
+			
+			
+			$sql3 = mysql_query("SELECT * FROM _replayComment WHERE idreplay='".$value['id']."' ORDER BY time DESC");
+			$repons3 = mysql_fetch_all($sql3);
+			
+			echo "<div class=\"commentaires\">";
+			echo "<h3><a href=\"#\">Commentaires</a></h3>";
+			echo "<div>";
+			echo "<table width=\"100%\">";
+			foreach($repons3 as $value3){
+				if($value3['username'] != ''){
+					echo "<tr>";
+					echo "<td>".date('d/m/Y \a\t H:i' ,$value3['time'])."</td><td>";
+					echo $value3['username'];
+					echo "</td>";
+					
+					if ($visiteur >= 9)
+					{
+						echo "<td>";
+						echo "<form width=\"100%\" method=\"post\" action=\"index.php?file=sc2Replay\">";
+						echo "<input type=\"text\" name=\"delcomment\" style=\"display:none\" value=\"".$value3['id']."\" />";
+						echo "<input type=\"submit\" value=\"Remove\" />";
+						echo "</form>";
+						echo "</td>";
+					}
+					echo "</tr>";
+					echo "<tr><td colspan=\"3\">";
+					echo $value3['comment'];
+					echo "</td>";
+					echo "</tr>";
+										
+				}
+			}
+			echo "</table>";
+			echo "<br/>";
+			echo "<br/>";
+			if ($visiteur >= 1)
+			{
+				echo "<form width=\"100%\" id=\"addcomment\" method=\"post\" action=\"index.php?file=sc2Replay\">";
+				echo "<label for=\"addcomment\">Rajouter un commentaire en tant que ".$user[2]." : </label><br/>";
+				echo "<input type=\"text\" name=\"idreplayCom\" style=\"display:none\" value=\"".$value['id']."\" />";
+				echo "<input type=\"text\" name=\"userCom\" style=\"display:none\" value=\"".$user[2]."\" />";
+				echo "<textarea cols=\"90\" row=\"4\" name=\"addcomment\"></textarea><br/>";
+				echo "<input type=\"submit\" value=\"Add\" />";
+				echo "</form>";
+			}
+			echo "</div>";
+			echo "</div>";
+			
+			
 			if ($visiteur >= 9)
 			{
+				echo "<br/>";
+				echo "<br/>";
 				echo "<form id=\"remove\" method=\"post\" action=\"index.php?file=sc2Replay\">";
 				echo "<input type=\"text\" name=\"deletereplayid\" style=\"display:none\" value=\"".$value['id']."\" />";
-				echo "<input type=\"submit\" value=\"Remove\" />";
+				echo "<input type=\"submit\" value=\"Remove this replay\" />";
 				echo "</form>";
 			}
 			echo "</div>";
