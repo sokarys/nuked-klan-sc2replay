@@ -574,7 +574,7 @@ function drawReplay(){
 			$repons4 =  mysql_fetch_row($sql4);
 			echo "<h3><a href=\"#\">".$value['teamsize']." - ".$getRaceTeam." - ".($value['mapname'])." - ".$value['recordby']." - ".$value['date']." - ".$repons4[0]." commentaires</a></h3>";
 			echo "<div>";
-			$sql2 = mysql_query("SELECT * FROM _replayPlayer WHERE idreplay='".$value['id']."'");
+			$sql2 = mysql_query("SELECT * FROM _replayPlayer WHERE idreplay='".$value['id']."' ORDER BY team");
 			$reponse2 = mysql_fetch_all($sql2);
 			echo "<table class=\"buttons\" border=\"0\"><tr><td><img width=\"15px\" height=\"15px\" src=\"modules/sc2Replay/download-icon.png\"/></td><td>";
 			echo "<span><a href=\"modules/sc2Replay/replay/".$value['replayname']."\">Download replay</a></span></td></tr></table><br/><br/><br/>";
@@ -593,8 +593,14 @@ function drawReplay(){
 			echo "Durée : ".$value['gamelength']."<br/>";
 			echo "Vitesse : ".$value['gamespeed']."<br/>";
 			echo "Description : ".$value['commentaire']."<br/><br/>";
+			$lastteam = -1;
 			foreach($reponse2 as $value2){
 				if($value2['nomplayer'] != ''){
+					if($lastteam != $value2['team']){
+						$lastteam = $value2['team'];
+						echo "<br/><br/>";
+						echo "Team : ".$value2['team']."<br/>";
+					}
 					echo "<div class=\"buttonsjoueur\">";
 					echo "<table border=\"0\"><tr><td width=\"10px\" height=\"10px\" style=\"background-color:#".$value2['color'].";\"></td><td>";
 					if( $value2['winner'] == '1'){
@@ -603,7 +609,6 @@ function drawReplay(){
 						echo $value2['nomplayer']." perd";
 					}
 					echo "</td></tr></table><br/>";
-					echo "Team : ".$value2['team']."<br/>";
 					echo "Race : ".getRaceIcon($value2['race'])." ".$value2['race']."<br/>";
 					echo "Apm moyen: ".$value2['apm']."<br/><br/>";
 					echo "<span class=\"apmImg\" idimgscr=\"".$value2['nomplayer'].substr($value['replayname'],0,strlen($value['replayname'])-10)."\" >";
@@ -614,12 +619,15 @@ function drawReplay(){
 					echo "<center><img src=\"modules/sc2Replay/apm/".$value2['apmpicture']."\"/></center>";
 					echo "</div>";
 					echo "</div>";
-					//echo "<br/>";
-					//echo "<br/>";
 				}
 			}
 			
 			
+			echo "<br/>";
+			echo "<br/>";
+			echo "<br/>";
+					
+					
 			$sql3 = mysql_query("SELECT * FROM _replayComment WHERE idreplay='".$value['id']."' ORDER BY time DESC");
 			$repons3 = mysql_fetch_all($sql3);
 			
