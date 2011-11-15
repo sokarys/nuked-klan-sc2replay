@@ -26,7 +26,6 @@ CREATE TABLE IF NOT EXISTS `_replayPlayer` (
   `winner` varchar(64) NOT NULL,
   `apmpicture` varchar(128) NOT NULL,
   PRIMARY KEY (`id`),
-  FOREIGN KEY `idreplay` REFERENCES _replay(`id`) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS `_replayComment` (
@@ -37,3 +36,15 @@ CREATE TABLE IF NOT EXISTS `_replayComment` (
   `time` varchar(64) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`)
 );
+
+CREATE TABLE IF NOT EXISTS `_replayNote` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `username` varchar(64) NOT NULL,
+  `note` int(11) NOT NULL DEFAULT '0',
+  `idreplay` int(11) NOT NULL,
+  PRIMARY KEY (`id`)
+);
+
+ALTER TABLE _replayNote  ADD CONSTRAINT FK_idreplay  FOREIGN KEY (idreplay) REFERENCES _replay(id)  ON UPDATE CASCADE  ON DELETE CASCADE; 
+ALTER TABLE _replayComment  ADD CONSTRAINT FK_idreplay  FOREIGN KEY (idreplay) REFERENCES _replay(id)  ON UPDATE CASCADE  ON DELETE CASCADE; 
+ALTER TABLE _replayPlayer  ADD CONSTRAINT FK_idreplay  FOREIGN KEY (idreplay) REFERENCES _replay(id)  ON UPDATE CASCADE  ON DELETE CASCADE;
