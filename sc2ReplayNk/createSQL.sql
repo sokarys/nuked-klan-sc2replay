@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS `_replayPlayer` (
   `color` varchar(64) NOT NULL,
   `winner` varchar(64) NOT NULL,
   `apmpicture` varchar(128) NOT NULL,
-  PRIMARY KEY (`id`),
+  PRIMARY KEY (`id`)
 );
 
 CREATE TABLE IF NOT EXISTS `_replayComment` (
