@@ -75,8 +75,13 @@ function toggleVisible(id) {
 }
 
 $(function() {
-		$(".buttons2").button();
 		$(".buttons").button();
+		$(".buttons2").button();
+		
+		
+		$(".buttonsjoueur").addClass("ui-buttontextleft");
+		$(".buttonsjoueur").addClass("ui-state-default");
+		$(".buttonsjoueur").addClass("ui-corner-all");
 		
 		$( "#replayList" ).accordion({
 			active: true,
@@ -587,9 +592,10 @@ function drawReplay(){
 			echo "Type : ".$value['teamsize']."<br/>";
 			echo "Durée : ".$value['gamelength']."<br/>";
 			echo "Vitesse : ".$value['gamespeed']."<br/>";
-			echo "Commentaire : ".$value['commentaire']."<br/><br/>";
+			echo "Description : ".$value['commentaire']."<br/><br/>";
 			foreach($reponse2 as $value2){
 				if($value2['nomplayer'] != ''){
+					echo "<div class=\"buttonsjoueur\">";
 					echo "<table border=\"0\"><tr><td width=\"10px\" height=\"10px\" style=\"background-color:#".$value2['color'].";\"></td><td>";
 					if( $value2['winner'] == '1'){
 						echo $value2['nomplayer']." gagne";
@@ -599,7 +605,7 @@ function drawReplay(){
 					echo "</td></tr></table><br/>";
 					echo "Team : ".$value2['team']."<br/>";
 					echo "Race : ".getRaceIcon($value2['race'])." ".$value2['race']."<br/>";
-					echo "Apm moyen: ".$value2['apm']."&nbsp;&nbsp;&nbsp;&nbsp;";
+					echo "Apm moyen: ".$value2['apm']."<br/><br/>";
 					echo "<span class=\"apmImg\" idimgscr=\"".$value2['nomplayer'].substr($value['replayname'],0,strlen($value['replayname'])-10)."\" >";
 					echo "Voir le graphique";
 					echo "</span><br/>";
@@ -607,8 +613,9 @@ function drawReplay(){
 					echo "<div class=\"hide\" title=\"Apm de ".$value2['nomplayer']." - Moyenne : ".$value2['apm']."\" id=\"".$value2['nomplayer'].substr($value['replayname'],0,strlen($value['replayname'])-10)."\">";
 					echo "<center><img src=\"modules/sc2Replay/apm/".$value2['apmpicture']."\"/></center>";
 					echo "</div>";
-					echo "<br/>";
-					echo "<br/>";
+					echo "</div>";
+					//echo "<br/>";
+					//echo "<br/>";
 				}
 			}
 			
